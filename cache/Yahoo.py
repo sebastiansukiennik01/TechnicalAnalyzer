@@ -6,6 +6,9 @@ import datetime as dt
 import yfinance as yf
 import os
 
+
+import stockPrice.StockPrice
+
 pd.set_option("display.max_columns", None)
 pd.set_option("display.max_rows", None)
 pd.set_option("display.width", None)
@@ -14,6 +17,10 @@ pd.set_option("display.width", None)
 class Yahoo(object):
 
     def __init__(self, ticker: (str | list), interval: str = "5m"):
+        """
+        :param ticker: stock price/forex pair code
+        :param interval: timeFrame for stock price (e.g. 1min/5min/1h/...)
+        """
         self.ticker = " ".join(ticker) if isinstance(ticker, list) else ticker
         self.stockPrice = None
         self.interval = interval
@@ -21,7 +28,6 @@ class Yahoo(object):
     def getData(self) -> None:
         """
         Makes API requests and saves ticker data locally.
-        :param interval: timeFrame for stock price (e.g. 1min/5min/1h/...)
         :return:
         """
         today = dt.datetime.today().strftime("%Y-%m-%d")
@@ -33,6 +39,7 @@ class Yahoo(object):
                 f"Provided interval: {self.interval} is not supported. Please choose one from: {correctIntervals}"
             )
 
+        # create file directory for new time frame
         if not os.path.exists(f"cache/data/forex/{self.interval}/"):
             os.mkdir(f"cache/data/forex/{self.interval}/")
 
@@ -40,25 +47,41 @@ class Yahoo(object):
         tickers = self.ticker.split(' ')
 
         if len(tickers) == 1:
+            tickerData.index.tz_convert('Europe/Berlin')
             tickerData.to_csv(f"cache/data/forex/{self.interval}/{self.ticker}.csv")
         else:
             for t in tickers:
                 tData = tickerData.loc[:, (slice(None), t)].droplevel([1], axis=1)
+                tData.index = tData.index.tz_convert('Europe/Warsaw')
                 tData.to_csv(f"cache/data/forex/{self.interval}/{t}.csv")
 
-    def loadData(self, ticker: str, startDate: str, endDate: str, timeFrame: str) -> pd.DataFrame:
+    def loadData(self, ticker: str, **kwargs) -> pd.DataFrame:
         """
-        Loads cached stock price data.
-        :param ticker:
-        :param startDate:
-        :param endDate:
-        :param timeFrame:
+        Loads cached stock price data
+        :param ticker: stock price/forex pair code
         :return:
         """
+        # extract kwargs
+        starDate = kwargs.pop('startDate', '')
+        endDate = kwargs.pop('endDate', '')
+        interval = kwargs.pop('interval', self.interval)
 
+        # check if file with correct timeFrame exists, if not getData than proceed
+        try:
+            filePath = f"cache/data/forex/{interval}/{ticker}.csv"
+            self.stockPrice = pd.read_csv(filePath, index_col=[0], parse_dates=[0])
+        except FileNotFoundError:
+            self.ticker = ticker
+            self.interval = interval
+            self.getData()
+        finally:
+            self.stockPrice = pd.read_csv(filePath, index_col=[0], parse_dates=[0])
 
+        # apply date range
+        self.stockPrice = stockPrice.StockPrice().applyDateRange(self.stockPrice, starDate, endDate)
 
+        return self.stockPrice
 
-
-    def updateExistingIntradaylData(self, ticker):
+    def updateExistingIntradayData(self, ticker):
+        # if ticker not provided updates all files cached
         pass
