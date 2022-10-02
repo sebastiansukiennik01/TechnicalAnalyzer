@@ -25,6 +25,9 @@ class Yahoo(object):
         self.stockPrice = None
         self.interval = interval
 
+    def getSP(self):
+        return self.stockPrice
+
     def downloadData(self) -> None:
         """
         Makes API requests and saves ticker data locally.

@@ -26,11 +26,18 @@ class StockPrice(object):
         :param endDate: to which to extract data
         :return: Data from selected data range.
         """
+
         startDate, endDate = self.interpretDates(startDate, endDate)
+
         if startDate == '':
             startDate = self.stockPrice.index[0]
         if endDate == '':
             endDate = self.stockPrice.index[-1]
+
+        # format to datetime if start/end is still string
+        startDate = pd.to_datetime(startDate, utc=True)
+        endDate = pd.to_datetime(endDate, utc=True)
+
         self.stockPrice = self.stockPrice.loc[startDate:endDate, :]
 
         return self.stockPrice
@@ -83,10 +90,6 @@ class StockPrice(object):
             start = today.date() - relativedelta(years=int(startDate.replace('Y', '').replace('-', '')))
         if "Y" in endDate:
             end = today.date() - relativedelta(years=int(endDate.replace('Y', '').replace('-', '')))
-
-        # format to datetime if start/end is still string
-        start = pd.to_datetime(start, utc=True)
-        end = pd.to_datetime(end, utc=True)
 
         return start, end
 

@@ -1,0 +1,20 @@
+[
+    {
+        "name": "New High After Reversal",
+        "description": "Here lives strategy's description",
+        "buyOn": [
+            {
+                "statistic": "Close",
+                "operation": ">",
+                "value": "Close_sma_20"
+            }
+        ],
+        "sellOn": [
+            {
+                "statistic": "Close",
+                "operation": "<",
+                "value": "Close_sma_20"
+            }
+        ]
+    }
+]
