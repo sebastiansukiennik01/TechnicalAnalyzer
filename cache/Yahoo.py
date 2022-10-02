@@ -7,7 +7,7 @@ import yfinance as yf
 import os
 
 
-import stockPrice.StockPrice
+from stockPrice import StockPrice
 
 pd.set_option("display.max_columns", None)
 pd.set_option("display.max_rows", None)
@@ -25,7 +25,7 @@ class Yahoo(object):
         self.stockPrice = None
         self.interval = interval
 
-    def getData(self) -> None:
+    def downloadData(self) -> None:
         """
         Makes API requests and saves ticker data locally.
         :return:
@@ -73,12 +73,12 @@ class Yahoo(object):
         except FileNotFoundError:
             self.ticker = ticker
             self.interval = interval
-            self.getData()
+            self.downloadData()
         finally:
             self.stockPrice = pd.read_csv(filePath, index_col=[0], parse_dates=[0])
 
         # apply date range
-        self.stockPrice = stockPrice.StockPrice().applyDateRange(self.stockPrice, starDate, endDate)
+        self.stockPrice = StockPrice(self.stockPrice).applyDateRange(starDate, endDate)
 
         return self.stockPrice
 

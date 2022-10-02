@@ -12,10 +12,13 @@ dateType = (str | dt.datetime | pd.DatetimeIndex)
 
 class StockPrice(object):
 
-    def __init__(self):
-        self.stockPrice = None
+    def __init__(self, stockPrice: pd.DataFrame):
+        self.stockPrice = stockPrice
 
-    def applyDateRange(self, stockPrice: pd.DataFrame, startDate: dateType = '', endDate: dateType = '') -> pd.DataFrame:
+    def getSP(self):
+        return self.stockPrice
+
+    def applyDateRange(self, startDate: dateType = '', endDate: dateType = '') -> pd.DataFrame:
         """
         Applies provided date range. Truncates stock price dataframe to only those that are from [startDate:endDate]
         period.
@@ -25,12 +28,12 @@ class StockPrice(object):
         """
         startDate, endDate = self.interpretDates(startDate, endDate)
         if startDate == '':
-            startDate = stockPrice.index[0]
+            startDate = self.stockPrice.index[0]
         if endDate == '':
-            endDate = stockPrice.index[-1]
-        stockPrice = stockPrice.loc[startDate:endDate, :]
+            endDate = self.stockPrice.index[-1]
+        self.stockPrice = self.stockPrice.loc[startDate:endDate, :]
 
-        return stockPrice
+        return self.stockPrice
 
     def interpretDates(self, startDate: dateType = '', endDate: dateType = '') -> (dt.datetime, dt.datetime):
         """
@@ -86,3 +89,4 @@ class StockPrice(object):
         end = pd.to_datetime(end, utc=True)
 
         return start, end
+
