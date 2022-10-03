@@ -6,10 +6,10 @@ from ta.trend import SMAIndicator, EMAIndicator, MACD
 from ta.momentum import RSIIndicator
 from ta.volatility import BollingerBands
 
-from stockPrice.StockPrice import StockPrice
+import stockPrice.StockPrice
 
 
-class Indicators(StockPrice):
+class Indicators(stockPrice.StockPrice):
 
     def __init__(self, stockPrice: pd.DataFrame):
         super().__init__(stockPrice)

@@ -1,8 +1,10 @@
 """
 File with methods for calculating return from investment strategies in the past
-"""
 
-# different classes - different investment strategies
+Different classes - different investment strategies
+"""
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -10,11 +12,11 @@ import json
 import os
 import datetime as dt
 
-from stockPrice import StockPrice
 
+import stockPrice
 
-""" Custom data types """
-dateType = (str | dt.datetime | pd.Timestamp)
+if TYPE_CHECKING:
+    from interface import dateType
 
 
 class Utils(object):
@@ -65,7 +67,7 @@ class Utils(object):
         pass
 
 
-class NewHighAfterReversal(StockPrice):
+class NewHighAfterReversal(stockPrice.StockPrice):
     
     def __init__(self, stockPrice: pd.DataFrame, criteria: pd.DataFrame):
         """
@@ -86,6 +88,8 @@ class NewHighAfterReversal(StockPrice):
         Criteria should be a dictionary that consists of at least two keys: ['buyOn', 'sellOn'], values assigned
         to those keys are data frames with criteria, when all of them are fulfilled than a sign to buy/sell is added.
         :param criteria:
+        :param startDate:
+        :param endDate:
         :return: self
         """
         super().applyDateRange(startDate, endDate)

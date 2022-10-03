@@ -7,7 +7,7 @@ import yfinance as yf
 import os
 
 
-from stockPrice import StockPrice
+import stockPrice
 
 pd.set_option("display.max_columns", None)
 pd.set_option("display.max_rows", None)
@@ -43,20 +43,20 @@ class Yahoo(object):
             )
 
         # create file directory for new time frame
-        if not os.path.exists(f"cache/data/forex/{self.interval}/"):
-            os.mkdir(f"cache/data/forex/{self.interval}/")
+        if not os.path.exists(f"data/forex/{self.interval}/"):
+            os.mkdir(f"data/forex/{self.interval}/")
 
         tickerData = yf.download(self.ticker, start=twoMonthsAgo, end=today, interval=self.interval)
         tickers = self.ticker.split(' ')
 
         if len(tickers) == 1:
             tickerData.index.tz_convert('Europe/Berlin')
-            tickerData.to_csv(f"cache/data/forex/{self.interval}/{self.ticker}.csv")
+            tickerData.to_csv(f"data/forex/{self.interval}/{self.ticker}.csv")
         else:
             for t in tickers:
                 tData = tickerData.loc[:, (slice(None), t)].droplevel([1], axis=1)
                 tData.index = tData.index.tz_convert('Europe/Warsaw')
-                tData.to_csv(f"cache/data/forex/{self.interval}/{t}.csv")
+                tData.to_csv(f"data/forex/{self.interval}/{t}.csv")
 
     def loadData(self, ticker: str, **kwargs) -> pd.DataFrame:
         """
@@ -71,7 +71,7 @@ class Yahoo(object):
 
         # check if file with correct timeFrame exists, if not getData than proceed
         try:
-            filePath = f"cache/data/forex/{interval}/{ticker}.csv"
+            filePath = f"data/forex/{interval}/{ticker}.csv"
             self.stockPrice = pd.read_csv(filePath, index_col=[0], parse_dates=[0])
         except FileNotFoundError:
             self.ticker = ticker
@@ -81,7 +81,7 @@ class Yahoo(object):
             self.stockPrice = pd.read_csv(filePath, index_col=[0], parse_dates=[0])
 
         # apply date range
-        self.stockPrice = StockPrice(self.stockPrice).applyDateRange(starDate, endDate)
+        self.stockPrice = stockPrice.StockPrice(self.stockPrice).applyDateRange(starDate, endDate)
 
         return self.stockPrice
 
