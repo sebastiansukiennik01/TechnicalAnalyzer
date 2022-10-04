@@ -8,8 +8,9 @@ if __name__ == '__main__':
                "USDJPY=X", "USDCHF=X", "USDCAD=X"]
 
     # load data
-    forex = Yahoo(tickers)
-    eur = forex.loadData(tickers[0], startDate="W-0", endDate="W-0", interval='1h')
+    forex = Yahoo(tickers, interval='1m')
+    forex.downloadData()
+    eur = forex.loadData(tickers[0], startDate="W-0", endDate="W-0", interval='1m')
 
     # Add indicators
     eurStock = Indicators(eur).addSMA('Close', length=20).addEMA().addRSI().addMACD()

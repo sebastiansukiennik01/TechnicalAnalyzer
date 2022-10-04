@@ -20,10 +20,10 @@ def debug(func):
 
 def timer(func):
     def _timer(*args, **kwargs):
-        start = time.time()
+        start = time.perf_counter()
         print(args)
         val = func(*args, **kwargs)
-        print(f"\n##### Function {func.__name__} took: {time.time() - start} s")
+        print(f"\n##### Function {func.__name__} took: {time.perf_counter() - start} s")
         return val
 
     return _timer

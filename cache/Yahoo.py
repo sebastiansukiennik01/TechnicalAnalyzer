@@ -1,6 +1,7 @@
 """
 File containing classes and methods to interact with Yahoo's API.
 """
+import dateutil.parser
 import pandas as pd
 import datetime as dt
 import yfinance as yf
@@ -35,6 +36,7 @@ class Yahoo(object):
         """
         today = dt.datetime.today().strftime("%Y-%m-%d")
         twoMonthsAgo = (dt.datetime.today() - dt.timedelta(weeks=8)).strftime("%Y-%m-%d")
+        twoMonthsAgo = (dt.datetime.today() - dt.timedelta(weeks=1)).strftime("%Y-%m-%d") if "1m" in self.interval else twoMonthsAgo
         correctIntervals = ["1m", "2m", "5m", "15m", "30m", "60m", "90m", "1h", "1d", "5d", "1wk", "1mo", "3mo"]
 
         if self.interval not in correctIntervals:
@@ -72,13 +74,15 @@ class Yahoo(object):
         # check if file with correct timeFrame exists, if not getData than proceed
         try:
             filePath = f"data/forex/{interval}/{ticker}.csv"
+            self.interval = interval
             self.stockPrice = pd.read_csv(filePath, index_col=[0], parse_dates=[0])
         except FileNotFoundError:
             self.ticker = ticker
             self.interval = interval
             self.downloadData()
         finally:
-            self.stockPrice = pd.read_csv(filePath, index_col=[0], parse_dates=[0])
+            customDateParser = lambda x: dateutil.parser.parse(x, ignoretz=False)
+            self.stockPrice = pd.read_csv(filePath, index_col=[0], parse_dates=[0], date_parser=customDateParser)
 
         # apply date range
         self.stockPrice = stockPrice.StockPrice(self.stockPrice).applyDateRange(starDate, endDate)

@@ -1,5 +1,9 @@
+import datetime
 import os.path
 import unittest
+
+import pandas as pd
+
 import cache.Yahoo as Yahoo
 
 
@@ -34,6 +38,44 @@ class TestCache(unittest.TestCase):
         y = Yahoo("EURUSD=X")
         y.downloadData()
         self.assertTrue(os.path.exists(f"data/forex/{y.interval}/EURUSD=X.csv"))
+
+    def test_loadData_returns_correct(self):
+        y = Yahoo("EURUSD=X").loadData("EURUSD=X")
+        self.assertIsInstance(y, pd.DataFrame)
+        self.assertFalse(y.empty)
+
+    def test_loadData_invalid_ticker(self):
+        with self.assertRaises(FileNotFoundError):
+            Yahoo(' ').loadData(' ')
+        with self.assertRaises(FileNotFoundError):
+            Yahoo('EURUSD=X').loadData(' ')
+
+    def test_loadData_interval_applied(self):
+        # czy jest zapisany
+        y = Yahoo("EURUSD=X")
+        y.loadData("EURUSD=X")
+        self.assertEqual(y.interval, "5m")
+
+        y.loadData("EURUSD=X", interval="1m")
+        self.assertEqual(y.interval, "1m")
+
+        y.loadData("EURUSD=X", interval="2m")
+        self.assertEqual(y.interval, "2m")
+
+        y.loadData("EURUSD=X", interval="15m")
+        self.assertEqual(y.interval, "15m")
+
+        y.loadData("EURUSD=X", interval="30m")
+        self.assertEqual(y.interval, "30m")
+
+        y.loadData("EURUSD=X", interval="60m")
+        self.assertEqual(y.interval, "60m")
+
+        y.loadData("EURUSD=X", interval="1h")
+        self.assertEqual(y.interval, "1h")
+
+        y.loadData("EURUSD=X", interval="1d")
+        self.assertEqual(y.interval, "1d")
 
 
 if __name__ == '__main__':

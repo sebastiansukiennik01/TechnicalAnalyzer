@@ -51,14 +51,15 @@ class StockPrice(object):
         :param endDate: encoded end date
         :return: tuple of dates in datetime format
         """
-        # check if provided encoded date format is supported
-        correctPrefix = ["Y-", "W-", "H-"]
-        if startDate and startDate[:2] not in correctPrefix:
-            raise AttributeError(f"Provide encoded start date is incorrect. Choose one from {correctPrefix} and try again")
-        if endDate and endDate[:2] not in correctPrefix:
-            raise AttributeError(f"Provide encoded start date is incorrect. Choose one from {correctPrefix} and try again")
+        # # check if provided encoded date format is supported
+        # correctPrefix = ["Y-", "W-", "H-"]
+        # if startDate and str(startDate)[:2] not in correctPrefix:
+        #     raise AttributeError(f"Provide encoded start date is incorrect. Choose one from {correctPrefix} and try again")
+        # if endDate and str(endDate)[:2] not in correctPrefix:
+        #     raise AttributeError(f"Provide encoded start date is incorrect. Choose one from {correctPrefix} and try again")
 
-        start, end = startDate, endDate
+        start, end = str(startDate), str(endDate)
+        startDate, endDate = str(startDate), str(endDate)
 
         # for H-k
         now = dt.datetime.now().replace(microsecond=0)
