@@ -1,5 +1,6 @@
 from cache import Yahoo
 from stockPrice import Indicators, Backtesting
+from visualization import LineChart
 
 import matplotlib.pyplot as plt
 
@@ -8,16 +9,19 @@ if __name__ == '__main__':
                "USDJPY=X", "USDCHF=X", "USDCAD=X"]
 
     # load data
-    forex = Yahoo(tickers, interval='1m')
-    forex.downloadData()
-    eur = forex.loadData(tickers[0], startDate="W-0", endDate="W-0", interval='1m')
+    forex = Yahoo(tickers)
+    eur = forex.loadData(tickers[0], interval='5m', startDate='W-0', endDate='W-0')
 
     # Add indicators
-    eurStock = Indicators(eur).addSMA('Close', length=20).addEMA().addRSI().addMACD()
+    eurStock = Indicators(eur).addSMA('Close', length=20)
     eurStock = eurStock.getSP()
 
     # backtesting
     criteria = Backtesting.Utils.loadCriteria("newHighAfterReversal")
-    newHigh = Backtesting.NewHighAfterReversal(eurStock, criteria).run()
-    print(newHigh.getSP()[["Buy", "Sell"]])
+    newHigh = Backtesting.Strategy(eurStock, criteria).run()
+    print(newHigh.getSP().head())
+
+    # graph results
+    lc = LineChart(newHigh.getSP())
+    lc.draw(y=['Close', 'Close_sma_20'])
 

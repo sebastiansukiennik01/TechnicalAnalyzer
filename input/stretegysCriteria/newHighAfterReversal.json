@@ -7,6 +7,11 @@
                 "statistic": "Close",
                 "operation": ">",
                 "value": "Close_sma_20"
+            },
+            {
+                "statistic": "High",
+                "operation": ">",
+                "value": "max:20"
             }
         ],
         "sellOn": [
