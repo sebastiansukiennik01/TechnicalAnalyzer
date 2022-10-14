@@ -10,8 +10,9 @@ if __name__ == '__main__':
 
     # load data
     forex = Yahoo(tickers)
-    eur = forex.loadData(tickers[5], interval='5m', startDate='W-2', endDate='W-0')
+    # forex.downloadData()
 
+    eur = forex.loadData(tickers[1], interval='5m', startDate='W-0', endDate='W-0')
     # Add indicators
     eurStock = Indicators(eur).addSMA('Close', length=20).addSMA('Close', length=100).addRSI().addMACD()
     eurStock = eurStock.getSP()

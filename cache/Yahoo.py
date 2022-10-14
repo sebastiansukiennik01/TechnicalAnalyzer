@@ -34,7 +34,6 @@ class Yahoo(object):
         Makes API requests and saves ticker data locally.
         :return:
         """
-        today = dt.datetime.today().strftime("%Y-%m-%d")
         twoMonthsAgo = (dt.datetime.today() - dt.timedelta(weeks=8)).strftime("%Y-%m-%d")
         twoMonthsAgo = (dt.datetime.today() - dt.timedelta(weeks=1)).strftime("%Y-%m-%d") if "1m" in self.interval else twoMonthsAgo
         correctIntervals = ["1m", "2m", "5m", "15m", "30m", "60m", "90m", "1h", "1d", "5d", "1wk", "1mo", "3mo"]
@@ -48,17 +47,20 @@ class Yahoo(object):
         if not os.path.exists(f"data/forex/{self.interval}/"):
             os.mkdir(f"data/forex/{self.interval}/")
 
-        tickerData = yf.download(self.ticker, start=twoMonthsAgo, end=today, interval=self.interval)
+        tickerData = yf.download(self.ticker, start=twoMonthsAgo, interval=self.interval)
         tickers = self.ticker.split(' ')
 
         if len(tickers) == 1:
-            tickerData.index.tz_convert('Europe/Berlin')
-            tickerData.to_csv(f"data/forex/{self.interval}/{self.ticker}.csv")
+            tickerData.index.tz_localize('Europe/Warsaw')
+            self.appendToExistingData(tickerData, f"data/forex/{self.interval}/{self.ticker}.csv")
         else:
             for t in tickers:
                 tData = tickerData.loc[:, (slice(None), t)].droplevel([1], axis=1)
-                tData.index = tData.index.tz_convert('Europe/Warsaw')
-                tData.to_csv(f"data/forex/{self.interval}/{t}.csv")
+                try:
+                    tData.index = tData.index.tz_convert('Europe/Warsaw')
+                except TypeError:
+                    tData.index = tData.index.tz_localize('Europe/Warsaw')
+                self.appendToExistingData(tData, f"data/forex/{self.interval}/{t}.csv")
 
     def loadData(self, ticker: str, **kwargs) -> pd.DataFrame:
         """
@@ -83,12 +85,33 @@ class Yahoo(object):
         finally:
             customDateParser = lambda x: dateutil.parser.parse(x, ignoretz=False)
             self.stockPrice = pd.read_csv(filePath, index_col=[0], parse_dates=[0], date_parser=customDateParser)
+            try:
+                self.stockPrice.index = self.stockPrice.index.tz_convert('Europe/Warsaw')
+            except TypeError:
+                self.stockPrice.index = self.stockPrice.index.tz_localize('Europe/Warsaw')
 
         # apply date range
         self.stockPrice = stockPrice.StockPrice(self.stockPrice).applyDateRange(starDate, endDate)
 
         return self.stockPrice
 
-    def updateExistingIntradayData(self, ticker):
-        # if ticker not provided updates all files cached
-        pass
+    def appendToExistingData(self, newData: pd.DataFrame, filePath: str):
+        """
+        Appends data to cached stockPrice files
+        :param newData: latest stock price data frame
+        :param filePath: path to file where data should be stored
+        :return: None
+        """
+        if not os.path.exists(filePath):
+            newData.to_csv(filePath)
+        else:
+            ticker = filePath.split("/")[-1].replace(".csv", "")
+            try:
+                lastFull = newData.index[-4]
+            except IndexError:
+                lastFull = newData.index[-1]
+            oldData = self.loadData(ticker)
+            pd.concat([oldData.iloc[:-1, :],
+                       newData.loc[oldData.index[-1]:, :]])\
+                .dropna()\
+                .to_csv(filePath)
