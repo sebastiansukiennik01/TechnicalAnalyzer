@@ -1,7 +1,7 @@
 [
     {
         "name": "New High After Reversal",
-        "description": "Here lives strategy's description",
+        "description": "To signal an entry ALL buyOn requirements must be fulfilled. However to close position only one sellOn requirement is needed.",
         "buyOn": [
             {
                 "statistic": "Close",
@@ -9,16 +9,26 @@
                 "value": "Close_sma_20"
             },
             {
-                "statistic": "High",
+                "statistic": "Close",
                 "operation": ">",
-                "value": "max:20"
+                "value": "Close_sma_100"
+            },
+            {
+                "statistic": "Close",
+                "operation": ">",
+                "value": "max_20"
             }
         ],
         "sellOn": [
             {
-                "statistic": "Close",
+                "statistic": "Low",
                 "operation": "<",
-                "value": "Close_sma_20"
+                "value": "SL_30"
+            },
+            {
+                "statistic": "High",
+                "operation": ">",
+                "value": "TP_30"
             }
         ]
     }

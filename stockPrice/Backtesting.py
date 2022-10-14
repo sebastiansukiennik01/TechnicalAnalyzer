@@ -11,8 +11,9 @@ import json
 import os
 import datetime as dt
 
-
+import interface
 import stockPrice
+import interface.decorators as d
 
 if TYPE_CHECKING:
     from interface import dateType
@@ -58,57 +59,87 @@ class Utils:
             "=": np.equal,
             "<=": np.less_equal,
             "<": np.less,
-            "!=": np.not_equal
+            "!=": np.not_equal,
+            "inRange": Utils.isInRange
         }
 
         return operations
 
-
     @staticmethod
-    def calculateValue(value: (str | int | float), stockPrice: pd.DataFrame, **kwargs) -> pd.Series:
+    def isInRange(values: pd.Series, valuesRange: pd.DataFrame) -> pd.Series:
         """
-        Calculates value represented in config. Value can be either:
-        - simple value (int/float e.g. 1 or 23.81)
-        - column name (column that exists in dataframe)
-        - math operation (value is calculate based on provided math operation)
-          if it's a math operation, it has to follow naming convention: mathOperation:x
-          where x is parameter
-        :return: column with value
+        Checks which elements are in range
+        :return: pandas Series with True element which where in range
         """
-        valueCalculations = {
-            "avg": Utils.average,
-            "max": Utils.maxLast,
-            "min": Utils.minLast
-        }
-        column = kwargs.pop('column', 'Close')
-
-        if isinstance(value, (int | float)):
-            return pd.Series(value, index=stockPrice.index)
-        elif isinstance(value, str) and value in stockPrice.columns:
-            return stockPrice[value]
-        else:
-            calculation = valueCalculations[value.split(':')[0]]
-            param = int(value.split(':')[1])
-            inputCol = stockPrice[column]
-            return pd.Series(calculation(inputCol, param), index=stockPrice.index)
+        return pd.DataFrame({"range1": np.greater(values.values.reshape(-1), valuesRange.iloc[:, 0]),
+                            "range2": np.less(values.values.reshape(-1), valuesRange.iloc[:, 1])}).all(axis=1).values
 
     @staticmethod
-    def average(inputCol: pd.Series, k: int) -> np.array:
-        outputCol = np.repeat(np.nan, k)
-        outputCol = np.append(outputCol, [np.mean(inputCol[i-k: i]) for i in range(k, len(inputCol))])
-        return outputCol
+    def isFloat(k: (str | float | int)):
+        try:
+            float(k)
+            return True
+        except ValueError:
+            return False
 
-    @staticmethod
-    def minLast(inputCol: pd.Series, k: int) -> np.array:
-        outputCol = np.repeat(np.nan, k)
-        outputCol = np.append(outputCol, [np.min(inputCol[i-k: i]) for i in range(k, len(inputCol))])
-        return outputCol
-
-    @staticmethod
-    def maxLast(inputCol: pd.Series, k: int) -> np.array:
-        outputCol = np.repeat(np.nan, k)
-        outputCol = np.append(outputCol, [np.max(inputCol[i-k: i]) for i in range(k, len(inputCol))])
-        return outputCol
+    # @staticmethod
+    # def calculateValue(value: (str | int | float), stockPrice: pd.DataFrame, **kwargs) -> pd.Series:
+    #     """
+    #     Calculates value represented in config. Value can be either:
+    #     - simple value (int/float e.g. 1 or 23.81)
+    #     - column name (column that exists in dataframe)
+    #     - math operation (value is calculate based on provided math operation)
+    #       if it's a math operation, it has to follow naming convention: mathOperation:x
+    #       where x is parameter
+    #     :return: column with value
+    #     """
+    #     valueCalculations = {
+    #         "avg": Utils.average,
+    #         "max": Utils.maxLast,
+    #         "min": Utils.minLast,
+    #         "SP": Utils.stopLoss,
+    #         "TP": Utils.takeProfit
+    #     }
+    #     column = kwargs.pop('column', 'Close')
+    #
+    #     if isinstance(value, (int | float)):
+    #         return pd.Series(value, index=stockPrice.index)
+    #     elif isinstance(value, str) and value in stockPrice.columns:
+    #         return stockPrice[value]
+    #     else:
+    #         calculation = valueCalculations[value.split(':')[0]]
+    #         param = int(value.split(':')[1])
+    #         inputCol = stockPrice[column]
+    #         return pd.Series(calculation(inputCol, param), index=stockPrice.index)
+    #
+    # @staticmethod
+    # def average(inputCol: pd.Series, k: int) -> np.array:
+    #     outputCol = np.repeat(np.nan, k)
+    #     outputCol = np.append(outputCol, [np.mean(inputCol[i-k: i]) for i in range(k, len(inputCol))])
+    #     return outputCol
+    #
+    # @staticmethod
+    # def minLast(inputCol: pd.Series, k: int) -> np.array:
+    #     outputCol = np.repeat(np.nan, k)
+    #     outputCol = np.append(outputCol, [np.min(inputCol[i-k: i]) for i in range(k, len(inputCol))])
+    #     return outputCol
+    #
+    # @staticmethod
+    # def maxLast(inputCol: pd.Series, k: int) -> np.array:
+    #     outputCol = np.repeat(np.nan, k)
+    #     outputCol = np.append(outputCol, [np.max(inputCol[i-k: i]) for i in range(k, len(inputCol))])
+    #     return outputCol
+    #
+    # @staticmethod
+    # def stopLoss(inputCol: pd.Series, k: int) -> np.array:
+    #     entry = self.stockPrice.iat[]
+    #     # wszystkie indexy do firstBuyInedx = 0
+    #     # na pozostałych wszędzie
+    #     return inputCol - k / 10000
+    #
+    # @staticmethod
+    # def takeProfit(inputCol: pd.Series, k: int) -> np.array:
+    #     return inputCol + k / 10000
 
 
 class Strategy(stockPrice.StockPrice):
@@ -126,11 +157,13 @@ class Strategy(stockPrice.StockPrice):
         super().__init__(stockPrice)
         self.criteria = criteria
         self.operations = Utils.loadOperations()
+        self.firstBuyIdx = 0
+        self.firstSellIdx = 0
 
     def getSP(self):
         return super().getSP()
 
-    def run(self, startDate: dateType = '', endDate: dateType = ''):
+    def executeTrades(self, startDate: dateType = '', endDate: dateType = ''):
         """
         Runs backtesting for strategy: new high after reversal. Adds to stockPrice dataframe boolean
         columns Buy and Sell. True in these columns means that in these point in time stock should
@@ -143,12 +176,29 @@ class Strategy(stockPrice.StockPrice):
         :return: self
         """
         super().applyDateRange(startDate, endDate)
-        self.applyBuyCriteria(self.criteria['buyOn'])
-        self.applySellCriteria(self.criteria['sellOn'])
+        self.stockPrice = self.applyBuyCriteria(self.criteria['buyOn'], self.stockPrice)
+        strategySignals = self.stockPrice.copy()
+        trades = []
 
-        return self
+        while True in strategySignals["Buy"].values:
+            self.firstBuyIdx = self.getFirstBuyIndex(strategySignals)
+            strategySignals = strategySignals.loc[self.firstBuyIdx:, :]
+            strategySignals = self.applySellCriteria(self.criteria["sellOn"], strategySignals)
+            try:
+                self.firstSellIdx = self.getFirstSellIndex(strategySignals)
+            except IndexError:
+                self.firstSellIdx = strategySignals.index[0]
+            finally:
+                if self.firstBuyIdx == self.firstSellIdx:
+                    strategySignals = strategySignals.iloc[1:, :]
+                    continue
+                trades.append(stockPrice.Trade(self.firstBuyIdx, self.firstSellIdx, strategySignals))
+            strategySignals = strategySignals.loc[self.firstSellIdx:, :]
+            strategySignals = self.applyBuyCriteria(self.criteria["buyOn"], strategySignals)
 
-    def applyBuyCriteria(self, criteria: pd.DataFrame):
+        return trades
+
+    def applyBuyCriteria(self, criteria: pd.DataFrame, stockData: pd.DataFrame):
         """
         Adds column Buy which has value True in rows where strategy signal is to buy
         :param criteria:
@@ -162,23 +212,27 @@ class Strategy(stockPrice.StockPrice):
             name = c[1].at['statistic']
             operation = c[1].at['operation']
             valueOriginal = c[1].at['value']
-            value = Utils.calculateValue(c[1].at['value'], self.stockPrice)
+            value = self.calculateValue(valueOriginal, stockData)
 
             # call correct operation function
-            columnToCheck = self.stockPrice.loc[:, name]
-            result = self.operations[operation](columnToCheck, value)
-            columnChecked = pd.DataFrame(result,
-                                         index=self.stockPrice.index,
+            columnToCheck = pd.DataFrame(stockData.loc[:, name])
+            columnChecked = self.operations[operation](columnToCheck.values, value.values)
+            columnChecked = pd.DataFrame(columnChecked,
+                                         index=stockData.index,
                                          columns=[f"{name}_{operation}_{valueOriginal}"])
             buyOn = pd.concat([buyOn, columnChecked], axis=1)
-
+            if f"{name}_{operation}_{valueOriginal}" in stockData.columns:
+                stockData = stockData.drop(columns=[f"{name}_{operation}_{valueOriginal}"])
         buy = buyOn.all(axis=1).rename("Buy")
-        self.stockPrice = pd.concat([self.stockPrice, buyOn, buy], axis=1)
+        stockData = stockData.drop(columns=["Buy"]) if "Buy" in stockData.columns else stockData
 
-    def applySellCriteria(self, criteria: pd.DataFrame):
+        return pd.concat([stockData, buyOn, buy], axis=1)
+
+    def applySellCriteria(self, criteria: pd.DataFrame, stockData: pd.DataFrame):
         """
         Adds column Sell which has value True in rows where strategy signal is to sell
         :param criteria:
+        :param stockData:
         :return: self
         """
         if criteria.empty:
@@ -189,15 +243,104 @@ class Strategy(stockPrice.StockPrice):
             name = c[1].at['statistic']
             operation = c[1].at['operation']
             valueOriginal = c[1].at['value']
-            value = Utils.calculateValue(c[1].at['value'], self.stockPrice)
+            value = self.calculateValue(valueOriginal, stockData)
 
             # call correct operation function
-            columnToCheck = self.stockPrice.loc[:, name]
-            columnChecked = self.operations[operation](columnToCheck, value)
+            columnToCheck = pd.DataFrame(stockData.loc[:, name])
+            columnChecked = self.operations[operation](columnToCheck.values, value.values)
+            columnName = f"{name}_{operation}_{valueOriginal}"
             columnChecked = pd.DataFrame(columnChecked,
-                                         index=self.stockPrice.index,
-                                         columns=[f"{name}_{operation}_{valueOriginal}"])
-            sellOn = pd.concat([sellOn, columnChecked], axis=1)
+                                         index=stockData.index,
+                                         columns=[columnName])
 
-        sell = sellOn.all(axis=1).rename("Sell")
-        self.stockPrice = pd.concat([self.stockPrice, sellOn, sell], axis=1)
+            sellOn = pd.concat([sellOn, columnChecked], axis=1)
+            if columnName in stockData.columns:
+                stockData = stockData.drop(columns=[columnName])
+
+        sell = sellOn.any(axis=1).rename("Sell")
+        stockData = stockData.drop(columns=["Sell"]) if "Sell" in stockData.columns else stockData
+
+        return pd.concat([stockData, sellOn, sell], axis=1)
+
+    def getFirstBuyIndex(self, strategySignals: pd.DataFrame):
+        """
+        Returns first index where 'Buy' column is True
+        :return:
+        """
+        return strategySignals.loc[strategySignals["Buy"] == True].index[0]
+
+    def getFirstSellIndex(self, strategySignals: pd.DataFrame):
+        """
+        Returns first index where 'Buy' column is True
+        :return:
+        """
+        if isinstance(strategySignals, pd.DataFrame) and "Sell" in strategySignals.columns:
+            return strategySignals.loc[strategySignals["Sell"] == True].index[0]
+        elif isinstance(strategySignals, pd.Series):
+            return strategySignals.loc[strategySignals == True].index[0]
+
+    def calculateValue(self, value: (str | int | float), stockPrice: pd.DataFrame, **kwargs) -> pd.DataFrame:
+        """
+        Calculates value represented in config. Value can be either:
+        - simple value (int/float e.g. 1 or 23.81)
+        - column name (column that exists in dataframe)
+        - math operation (value is calculate based on provided math operation)
+          if it's a math operation, it has to follow naming convention: mathOperation:x
+          where x is parameter
+        :return: column with value
+        """
+        column = kwargs.pop('column', 'Close')
+        valueCalculations = {
+            "avg": self.average,
+            "max": self.maxLast,
+            "min": self.minLast,
+            "SL": self.stopLoss,
+            "TP": self.takeProfit
+        }
+        valueColumns = pd.DataFrame(index=stockPrice.index)
+        values = value.replace('[', '').replace(']', '').split(':')
+
+        for v in values:
+            if isinstance(v, (int | float)) or Utils.isFloat(v):
+                valueColumns = pd.concat([valueColumns, pd.Series(float(v), index=stockPrice.index)],
+                                         axis=1)
+            elif isinstance(v, str) and v in stockPrice.columns:
+                valueColumns = pd.concat([valueColumns, stockPrice[v]],
+                                         axis=1)
+            else:
+                calculation = valueCalculations[v.split('_')[0]]
+                param = int(v.split('_')[1])
+                inputCol = stockPrice[column]
+                valueColumns = pd.concat([valueColumns, pd.Series(calculation(inputCol, param), index=stockPrice.index)],
+                                         axis=1)
+
+        return valueColumns
+
+    def average(self, inputCol: pd.Series, k: int) -> np.array:
+        outputCol = np.repeat(np.nan, k)
+        outputCol = np.append(outputCol, [np.mean(inputCol[i-k: i]) for i in range(k, len(inputCol))])
+        return outputCol
+
+    def minLast(self, inputCol: pd.Series, k: int) -> np.array:
+        k = min(k, inputCol.shape[0])  # prevents returning outputColumn longer than left stockPrice
+        outputCol = np.repeat(np.nan, k)
+        outputCol = np.append(outputCol, [np.min(inputCol[i-k: i]) for i in range(k, len(inputCol))])
+        return outputCol
+
+    def maxLast(self, inputCol: pd.Series, k: int) -> np.array:
+        k = min(k, inputCol.shape[0])  # prevents returning outputColumn longer than left stockPrice
+        outputCol = np.repeat(np.nan, k)
+        outputCol = np.append(outputCol, [np.max(inputCol[i-k: i]) for i in range(k, len(inputCol))])
+        return outputCol
+
+    def stopLoss(self, inputCol: pd.Series, k: int) -> np.array:
+        # get entry price (next candle's open after buy signal)
+        exitPrice = inputCol.iat[0] - k / 10000
+        outputCol = np.repeat(exitPrice, len(inputCol.index))
+        return outputCol
+
+    def takeProfit(self, inputCol: pd.Series, k: int) -> np.array:
+        exitPrice = inputCol.iat[1] + k / 10000
+        outputCol = np.repeat(exitPrice, len(inputCol.index))
+        return outputCol
+
