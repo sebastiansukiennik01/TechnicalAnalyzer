@@ -1,6 +1,8 @@
 from cache import Yahoo
 from stockPrice import Indicators, Backtesting
 from visualization import LineChart
+import dataBase
+
 
 import matplotlib.pyplot as plt
 
@@ -12,14 +14,23 @@ if __name__ == '__main__':
     forex = Yahoo(tickers)
     # forex.downloadData()
 
-    eur = forex.loadData(tickers[1], interval='5m', startDate='W-0', endDate='W-0')
+    # save to db
+    db = dataBase.StockPriceDb()
+    for t in tickers:
+        d = forex.loadData(t, interval='30m', startDate='W-0', endDate='W-0')
+        db.save(d, t, '30min')
+
+    breakpoint()
     # Add indicators
-    eurStock = Indicators(eur).addSMA('Close', length=20).addSMA('Close', length=100).addRSI().addMACD()
+    eurStock = Indicators(d).addSMA('Close', length=20)\
+        .addSMA('Close', length=100)\
+        .addRSI()\
+        .addMACD()
     eurStock = eurStock.getSP()
     print(eurStock.columns)
 
     # backtesting
-    criteria = Backtesting.Utils.loadCriteria("newHighAfterReversal")
+    criteria = Backtesting.StrategyUtils.loadCriteria("newHighAfterReversal")
     newHigh = Backtesting.Strategy(eurStock, criteria).executeTrades()
 
     ent = [t.entryDate for t in newHigh]

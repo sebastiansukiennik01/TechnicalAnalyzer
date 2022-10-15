@@ -5,7 +5,7 @@ import os
 # set directory to TechnicalAnalyzer
 path_parent = os.path.dirname(os.getcwd())
 os.chdir(path_parent)
-print(os.getcwd())
+
 from Yahoo import Yahoo
 
 FOREX = ["EURUSD=X", "GBPUSD=X", "AUDUSD=X", "USDJPY=X", "USDCHF=X", "USDCAD=X"]

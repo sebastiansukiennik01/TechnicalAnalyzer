@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from interface import dateType
 
 
-class Utils:
+class StrategyUtils:
     """
     Utilities helpful in backtesting
     """
@@ -60,7 +60,7 @@ class Utils:
             "<=": np.less_equal,
             "<": np.less,
             "!=": np.not_equal,
-            "inRange": Utils.isInRange
+            "inRange": StrategyUtils.isInRange
         }
 
         return operations
@@ -74,72 +74,7 @@ class Utils:
         return pd.DataFrame({"range1": np.greater(values.values.reshape(-1), valuesRange.iloc[:, 0]),
                             "range2": np.less(values.values.reshape(-1), valuesRange.iloc[:, 1])}).all(axis=1).values
 
-    @staticmethod
-    def isFloat(k: (str | float | int)):
-        try:
-            float(k)
-            return True
-        except ValueError:
-            return False
 
-    # @staticmethod
-    # def calculateValue(value: (str | int | float), stockPrice: pd.DataFrame, **kwargs) -> pd.Series:
-    #     """
-    #     Calculates value represented in config. Value can be either:
-    #     - simple value (int/float e.g. 1 or 23.81)
-    #     - column name (column that exists in dataframe)
-    #     - math operation (value is calculate based on provided math operation)
-    #       if it's a math operation, it has to follow naming convention: mathOperation:x
-    #       where x is parameter
-    #     :return: column with value
-    #     """
-    #     valueCalculations = {
-    #         "avg": Utils.average,
-    #         "max": Utils.maxLast,
-    #         "min": Utils.minLast,
-    #         "SP": Utils.stopLoss,
-    #         "TP": Utils.takeProfit
-    #     }
-    #     column = kwargs.pop('column', 'Close')
-    #
-    #     if isinstance(value, (int | float)):
-    #         return pd.Series(value, index=stockPrice.index)
-    #     elif isinstance(value, str) and value in stockPrice.columns:
-    #         return stockPrice[value]
-    #     else:
-    #         calculation = valueCalculations[value.split(':')[0]]
-    #         param = int(value.split(':')[1])
-    #         inputCol = stockPrice[column]
-    #         return pd.Series(calculation(inputCol, param), index=stockPrice.index)
-    #
-    # @staticmethod
-    # def average(inputCol: pd.Series, k: int) -> np.array:
-    #     outputCol = np.repeat(np.nan, k)
-    #     outputCol = np.append(outputCol, [np.mean(inputCol[i-k: i]) for i in range(k, len(inputCol))])
-    #     return outputCol
-    #
-    # @staticmethod
-    # def minLast(inputCol: pd.Series, k: int) -> np.array:
-    #     outputCol = np.repeat(np.nan, k)
-    #     outputCol = np.append(outputCol, [np.min(inputCol[i-k: i]) for i in range(k, len(inputCol))])
-    #     return outputCol
-    #
-    # @staticmethod
-    # def maxLast(inputCol: pd.Series, k: int) -> np.array:
-    #     outputCol = np.repeat(np.nan, k)
-    #     outputCol = np.append(outputCol, [np.max(inputCol[i-k: i]) for i in range(k, len(inputCol))])
-    #     return outputCol
-    #
-    # @staticmethod
-    # def stopLoss(inputCol: pd.Series, k: int) -> np.array:
-    #     entry = self.stockPrice.iat[]
-    #     # wszystkie indexy do firstBuyInedx = 0
-    #     # na pozostałych wszędzie
-    #     return inputCol - k / 10000
-    #
-    # @staticmethod
-    # def takeProfit(inputCol: pd.Series, k: int) -> np.array:
-    #     return inputCol + k / 10000
 
 
 class Strategy(stockPrice.StockPrice):
@@ -156,7 +91,7 @@ class Strategy(stockPrice.StockPrice):
         """
         super().__init__(stockPrice)
         self.criteria = criteria
-        self.operations = Utils.loadOperations()
+        self.operations = StrategyUtils.loadOperations()
         self.firstBuyIdx = 0
         self.firstSellIdx = 0
 
@@ -301,7 +236,7 @@ class Strategy(stockPrice.StockPrice):
         values = value.replace('[', '').replace(']', '').split(':')
 
         for v in values:
-            if isinstance(v, (int | float)) or Utils.isFloat(v):
+            if isinstance(v, (int | float)) or interface.Utils.isFloat(v):
                 valueColumns = pd.concat([valueColumns, pd.Series(float(v), index=stockPrice.index)],
                                          axis=1)
             elif isinstance(v, str) and v in stockPrice.columns:
