@@ -11,10 +11,11 @@ if __name__ == '__main__':
                "USDJPY=X", "USDCHF=X", "USDCAD=X"]
 
     # load data
-    forex = Yahoo(tickers)
-    # forex.downloadData()
-    # cache.run()
 
+    cache.run()
+
+
+    breakpoint()
     data = dataBase.StockPriceDb().findByTicker("EURUSD=X", "5m")
     data = StockPrice(data).applyDateRange("W-3", "W-0")
     # Add indicators

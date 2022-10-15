@@ -26,6 +26,7 @@ class Yahoo(object):
         self.ticker = " ".join(ticker) if isinstance(ticker, list) else ticker
         self.stockPrice = None
         self.interval = interval
+        self.correctIntervals = ["1m", "2m", "5m", "15m", "30m", "60m", "90m", "1h", "1d", "5d", "1wk", "1mo", "3mo"]
 
     def getSP(self):
         return self.stockPrice
@@ -37,19 +38,21 @@ class Yahoo(object):
         """
         twoMonthsAgo = (dt.datetime.today() - dt.timedelta(weeks=8)).strftime("%Y-%m-%d")
         twoMonthsAgo = (dt.datetime.today() - dt.timedelta(weeks=1)).strftime("%Y-%m-%d") if "1m" in self.interval else twoMonthsAgo
-        correctIntervals = ["1m", "2m", "5m", "15m", "30m", "60m", "90m", "1h", "1d", "5d", "1wk", "1mo", "3mo"]
+        maxAvailableStart = self.maxAvailableStartDate()
+        print(maxAvailableStart)
 
-        if self.interval not in correctIntervals:
+
+        if self.interval not in self.correctIntervals:
             raise AttributeError(
-                f"Provided interval: {self.interval} is not supported. Please choose one from: {correctIntervals}"
+                f"Provided interval: {self.interval} is not supported. "
+                f"Please choose one from: {self.correctIntervals}"
             )
 
         # create file directory for new time frame
         if not os.path.exists(f"data/forex/{self.interval}/"):
-            print(os.getcwd())
             os.mkdir(f"data/forex/{self.interval}/")
 
-        tickerData = yf.download(self.ticker, start=twoMonthsAgo, interval=self.interval)
+        tickerData = yf.download(self.ticker, start=maxAvailableStart, interval=self.interval)
         tickers = self.ticker.split(' ')
 
         if len(tickers) == 1:
@@ -117,3 +120,11 @@ class Yahoo(object):
                        newData.loc[oldData.index[-1]:, :]])\
                 .dropna()\
                 .to_csv(filePath)
+
+    def maxAvailableStartDate(self):
+        if self.interval in ["1m"]:
+            return dt.datetime.today() - dt.timedelta(days=7) + dt.timedelta(minutes=1)
+        elif self.interval in ["2m", "5m", "15m", "30m", "60m", "90m", "1h"]:
+            return dt.datetime.today() - dt.timedelta(weeks=8)
+        elif self.interval in ["1d", "5d", "1wk", "1mo", "3mo"]:
+            return '2000-01-01'
