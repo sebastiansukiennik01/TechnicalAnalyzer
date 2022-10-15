@@ -94,11 +94,12 @@ class Strategy(stockPrice.StockPrice):
         self.operations = StrategyUtils.loadOperations()
         self.firstBuyIdx = 0
         self.firstSellIdx = 0
+        self.tp, self.sl = self.calculateTPSL()
 
     def getSP(self):
         return super().getSP()
 
-    def executeTrades(self, startDate: dateType = '', endDate: dateType = ''):
+    def executeTrades(self, startDate: dateType = '', endDate: dateType = '', profitType: str = 't'):
         """
         Runs backtesting for strategy: new high after reversal. Adds to stockPrice dataframe boolean
         columns Buy and Sell. True in these columns means that in these point in time stock should
@@ -108,8 +109,11 @@ class Strategy(stockPrice.StockPrice):
         :param criteria:
         :param startDate:
         :param endDate:
+        :param profitType:
         :return: self
         """
+
+        tp, sl = self.calculateTPSL()
         super().applyDateRange(startDate, endDate)
         self.stockPrice = self.applyBuyCriteria(self.criteria['buyOn'], self.stockPrice)
         strategySignals = self.stockPrice.copy()
@@ -127,7 +131,13 @@ class Strategy(stockPrice.StockPrice):
                 if self.firstBuyIdx == self.firstSellIdx:
                     strategySignals = strategySignals.iloc[1:, :]
                     continue
-                trades.append(stockPrice.Trade(self.firstBuyIdx, self.firstSellIdx, strategySignals))
+                trades.append(stockPrice.Trade(
+                    self.firstBuyIdx,
+                    self.firstSellIdx,
+                    strategySignals,
+                    profitType,
+                    tp,
+                    sl))
             strategySignals = strategySignals.loc[self.firstSellIdx:, :]
             strategySignals = self.applyBuyCriteria(self.criteria["buyOn"], strategySignals)
 
@@ -278,4 +288,8 @@ class Strategy(stockPrice.StockPrice):
         exitPrice = inputCol.iat[1] + k / 10000
         outputCol = np.repeat(exitPrice, len(inputCol.index))
         return outputCol
+
+    def calculateTPSL(self):
+        return [float(v.split('_')[1]) for v in self.criteria["sellOn"]["value"]]
+
 

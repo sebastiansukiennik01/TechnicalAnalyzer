@@ -7,12 +7,13 @@ import datetime as dt
 import yfinance as yf
 import os
 
-
 import stockPrice
+
 
 pd.set_option("display.max_columns", None)
 pd.set_option("display.max_rows", None)
 pd.set_option("display.width", None)
+
 
 
 class Yahoo(object):
@@ -45,6 +46,7 @@ class Yahoo(object):
 
         # create file directory for new time frame
         if not os.path.exists(f"data/forex/{self.interval}/"):
+            print(os.getcwd())
             os.mkdir(f"data/forex/{self.interval}/")
 
         tickerData = yf.download(self.ticker, start=twoMonthsAgo, interval=self.interval)

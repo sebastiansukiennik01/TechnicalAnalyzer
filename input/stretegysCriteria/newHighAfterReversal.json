@@ -11,24 +11,34 @@
             {
                 "statistic": "Close",
                 "operation": ">",
-                "value": "Close_sma_100"
+                "value": "Close_sma_150"
             },
             {
                 "statistic": "Close",
                 "operation": ">",
                 "value": "max_20"
+            },
+            {
+                "statistic": "Close_sma_20",
+                "operation": "<",
+                "value": "Close_sma_150"
+            },
+            {
+                "statistic": "Close_rsi",
+                "operation": "<",
+                "value": "70"
             }
         ],
         "sellOn": [
             {
                 "statistic": "Low",
                 "operation": "<",
-                "value": "SL_30"
+                "value": "SL_40"
             },
             {
                 "statistic": "High",
                 "operation": ">",
-                "value": "TP_30"
+                "value": "TP_20"
             }
         ]
     }
